@@ -66,6 +66,52 @@ private:
     return false;
   }
 
+  void list_nodes(node n, std::vector<node> swap_list, std::vector<node> remaining) {
+    if (ntk.level(&n) == 0) {
+      return;
+    }
+
+    ntk.foreach_fanin(n, [&] (signal const& s) {
+       auto node = ntk.get_node(s);
+
+       if (ntk.is_complemented(s)) {
+         swap_list.insert(node);
+         remaining.insert(node);
+       } else if (ntk.level(&n) == 0) {
+         swap_list.insert(node);
+       } else {
+         list_nodes(node, swap_list, remaining);
+       }
+    });
+
+    
+  }
+
+  node swap(std::vector<node> swap_list) {
+    node critical_node, final_node;
+    bool has_critical = false;
+
+    for ( auto i = 0; i < swap_list.size(); ++i ) {
+      auto node = swap_list[i];
+      if (ntk.is_on_critical_path(node)) {
+        critical_node = node;
+        has_critical = true;
+      } else if (i == 0 || (i == 1 && has_critical)) {
+        final_node = node;
+      } else {
+        final_node = ntk.get_node(ntk.create_and(ntk.make_signal(&node), ntk.make_signal(&final_node)));
+      }
+    }
+
+    if (has_critical) {
+      final_node = ntk.get_node(ntk.create_and(ntk.make_signal(&critical_node), ntk.make_signal(&final_node)));
+    }
+
+    return final_node;
+  }
+
+
+
   /* Try the distributivity rule on node n. Return true if the network is updated. */
   bool try_distributivity( node n )
   {
