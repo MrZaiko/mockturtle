@@ -170,7 +170,7 @@ TEST_CASE( "Depth optimization on ISCAS benchmarks", "[aig_algebraic_rewriting]"
     {
       continue;
     }
-    ntk_ori = ntk;
+    ntk_ori = cleanup_dangling( ntk );
 
     /* call the algorithm */
     aig_algebraic_rewriting( ntk );
