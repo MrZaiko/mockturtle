@@ -7,6 +7,7 @@
 #include <mockturtle/io/aiger_reader.hpp>
 #include <mockturtle/algorithms/equivalence_checking.hpp>
 #include <mockturtle/algorithms/miter.hpp>
+#include <mockturtle/algorithms/functional_reduction.hpp>
 #include <kitty/static_truth_table.hpp>
 #include <lorina/aiger.hpp>
 
@@ -184,7 +185,9 @@ TEST_CASE( "Depth optimization on ISCAS benchmarks", "[aig_algebraic_rewriting]"
     CHECK( depth_aig.depth() <= expected_depths[i] );
 
     /* equivalence checking */
-    bool cec = *equivalence_checking( *miter<aig_network>( ntk_ori, ntk ) );
+    aig_network miter_aig = *miter<aig_network>( ntk_ori, ntk );
+    functional_reduction( miter_aig );
+    bool cec = *equivalence_checking( miter_aig );
     CHECK( cec == true );
   }
 }
