@@ -41,6 +41,73 @@ TEST_CASE( "Simple associativity (AND)", "[aig_algebraic_rewriting]" )
   CHECK( tts == simulate<kitty::static_truth_table<num_pis>>( aig ) );
 }
 
+TEST_CASE( "Simple associativity 7 inputs (AND)", "[aig_algebraic_rewriting]" )
+{
+  /* create the network */
+  aig_network aig, aig_test;
+  static const uint32_t num_pis{7};
+  std::vector<typename aig_network::signal> pis;
+  for ( uint32_t i = 0; i < num_pis; ++i )
+    pis.emplace_back( aig.create_pi() );
+
+  const auto f1 = aig.create_and( pis[0], pis[1] );
+  const auto f2 = aig.create_and( f1, pis[2] );
+  const auto f3 = aig.create_and( f2, pis[3] );
+  const auto f4 = aig.create_and( f3, pis[4] );
+  const auto f5 = aig.create_and( f4, pis[5] );
+  const auto f6 = aig.create_and( f5, pis[6] );
+  aig.create_po( f6 );
+
+  /* simulate to get the output truth table(s) */
+  aig_test = cleanup_dangling( aig );
+
+  /* call the algorithm */
+  aig_algebraic_rewriting( aig );
+
+  /* check the resulting depth */
+  depth_view depth_aig{aig};
+  CHECK( depth_aig.depth() == 3 );
+
+  bool cec = *equivalence_checking( *miter<aig_network>( aig_test, aig ) );
+  CHECK( cec == true );
+}
+
+TEST_CASE( "Simple associativity 10 inputs (OR + AND)", "[aig_algebraic_rewriting]" )
+{
+  /* create the network */
+  aig_network aig, aig_test;
+  static const uint32_t num_pis{10};
+  std::vector<typename aig_network::signal> pis;
+  for ( uint32_t i = 0; i < num_pis; ++i )
+    pis.emplace_back( aig.create_pi() );
+
+  const auto f1 = aig.create_or( pis[0], pis[1] );
+  const auto f2 = aig.create_or( f1, pis[2] );
+  const auto f3 = aig.create_or( f2, pis[3] );
+  const auto f4 = aig.create_or( f3, pis[4] );
+
+  const auto g1 = aig.create_or( pis[5], pis[6] );
+  const auto g2 = aig.create_or( g1, pis[7] );
+  const auto g3 = aig.create_or( g2, pis[8] );
+  const auto g4 = aig.create_or( g3, pis[9] );
+
+  const auto f5 = aig.create_and( f4, g4 );
+  aig.create_po( f5 );
+
+  /* simulate to get the output truth table(s) */
+  aig_test = cleanup_dangling( aig );
+
+  /* call the algorithm */
+  aig_algebraic_rewriting( aig );
+
+  /* check the resulting depth */
+  depth_view depth_aig{aig};
+  CHECK( depth_aig.depth() == 4 );
+
+  bool cec = *equivalence_checking( *miter<aig_network>( aig_test, aig ) );
+  CHECK( cec == true );
+}
+
 TEST_CASE( "Simple associativity (OR)", "[aig_algebraic_rewriting]" )
 {
   /* create the network */
@@ -160,6 +227,9 @@ TEST_CASE( "Three-layer distributivity", "[aig_algebraic_rewriting]" )
 
 TEST_CASE( "Depth optimization on ISCAS benchmarks", "[aig_algebraic_rewriting]" )
 {
+  //uint32_t benchmark_ids[1] = {/*17, 432, 499, 880, 1355, 1908,*/ 2670};//, 3540, 5315};//, 6288, 7552};
+  //uint32_t expected_depths[1] = {/*3, 26, 19, 19, 25, 26,*/ 18}; //, 35, 34};//, 120, 25};
+
   uint32_t benchmark_ids[11] = {17, 432, 499, 880, 1355, 1908, 2670, 3540, 5315, 6288, 7552};
   uint32_t expected_depths[11] = {3, 26, 19, 19, 25, 26, 18, 35, 34, 120, 25};
 
@@ -175,12 +245,12 @@ TEST_CASE( "Depth optimization on ISCAS benchmarks", "[aig_algebraic_rewriting]"
 
     /* call the algorithm */
     aig_algebraic_rewriting( ntk );
-
     /* check the resulting depth */
     /* (You should already pass by implementing the rules introduced in the pdf,
         but if you have implemented more rules, better results are possible.) */
     depth_view depth_aig{ntk};
-    fmt::print( "[i] On benchmark c{}.aig: Optimized depth = {} (expected at most {})\n", 
+    depth_view depth_ntk{ntk_ori};
+    fmt::print( "[i] On benchmark c{}.aig: Optimized depth = {} (expected at most {})\n",
                 benchmark_ids[i], depth_aig.depth(), expected_depths[i] );
     CHECK( depth_aig.depth() <= expected_depths[i] );
 
@@ -189,5 +259,22 @@ TEST_CASE( "Depth optimization on ISCAS benchmarks", "[aig_algebraic_rewriting]"
     functional_reduction( miter_aig );
     bool cec = *equivalence_checking( miter_aig );
     CHECK( cec == true );
+
+    if (!cec)
+    {
+      std::cout << i << " - initial depth = " << depth_ntk.depth() << " - final depth = " << depth_aig.depth() << '\n';
+      std::cout << "NEW \n";
+      depth_aig.foreach_po([&] (auto const& s) {
+          auto n = depth_aig.get_node(s);
+          std::cout << n << ' ';
+      });
+      std::cout << '\n';
+      std::cout << "OLD \n";
+      depth_ntk.foreach_po([&] (auto const& s) {
+        auto n = depth_aig.get_node(s);
+        std::cout << n << ' ';
+      });
+      std::cout << '\n';
+    }
   }
 }
