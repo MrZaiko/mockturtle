@@ -227,9 +227,6 @@ TEST_CASE( "Three-layer distributivity", "[aig_algebraic_rewriting]" )
 
 TEST_CASE( "Depth optimization on ISCAS benchmarks", "[aig_algebraic_rewriting]" )
 {
-  //uint32_t benchmark_ids[1] = {/*17, 432, 499, 880, 1355, 1908,*/ 2670};//, 3540, 5315};//, 6288, 7552};
-  //uint32_t expected_depths[1] = {/*3, 26, 19, 19, 25, 26,*/ 18}; //, 35, 34};//, 120, 25};
-
   uint32_t benchmark_ids[11] = {17, 432, 499, 880, 1355, 1908, 2670, 3540, 5315, 6288, 7552};
   uint32_t expected_depths[11] = {3, 26, 19, 19, 25, 26, 18, 35, 34, 120, 25};
 
@@ -249,7 +246,7 @@ TEST_CASE( "Depth optimization on ISCAS benchmarks", "[aig_algebraic_rewriting]"
     /* (You should already pass by implementing the rules introduced in the pdf,
         but if you have implemented more rules, better results are possible.) */
     depth_view depth_aig{ntk};
-    depth_view depth_ntk{ntk_ori};
+
     fmt::print( "[i] On benchmark c{}.aig: Optimized depth = {} (expected at most {})\n",
                 benchmark_ids[i], depth_aig.depth(), expected_depths[i] );
     CHECK( depth_aig.depth() <= expected_depths[i] );
@@ -260,21 +257,5 @@ TEST_CASE( "Depth optimization on ISCAS benchmarks", "[aig_algebraic_rewriting]"
     bool cec = *equivalence_checking( miter_aig );
     CHECK( cec == true );
 
-    if (!cec)
-    {
-      std::cout << i << " - initial depth = " << depth_ntk.depth() << " - final depth = " << depth_aig.depth() << '\n';
-      std::cout << "NEW \n";
-      depth_aig.foreach_po([&] (auto const& s) {
-          auto n = depth_aig.get_node(s);
-          std::cout << n << ' ';
-      });
-      std::cout << '\n';
-      std::cout << "OLD \n";
-      depth_ntk.foreach_po([&] (auto const& s) {
-        auto n = depth_aig.get_node(s);
-        std::cout << n << ' ';
-      });
-      std::cout << '\n';
-    }
   }
 }
