@@ -20,8 +20,6 @@ namespace mockturtle {
 
 namespace detail {
 
-// using Ntk = depth_view<aig_network>;
-
 template <class Ntk> class aig_algebraic_rewriting_impl {
   using node = typename Ntk::node;
   using signal = typename Ntk::signal;
@@ -31,7 +29,6 @@ public:
     static_assert(has_level_v<Ntk>, "Ntk does not implement depth interface.");
 
     update_final_gates();
-    mockturtle::write_dot(ntk, "init_tree.dot");
   }
 
   void run() {
@@ -51,8 +48,6 @@ public:
         }
       });
     }
-
-    mockturtle::write_dot(ntk, "final_tree.dot");
   }
 
 private:
@@ -322,7 +317,7 @@ private:
       b = l3_neighbors[0];
     }
 
-    // APPLY DISTRIBUTIVITY
+    // APPLY DISTRIBUTIVITY ONLY IF WORTH IT
     if (ntk.level(ntk.get_node(a)) > ntk.level(ntk.get_node(d))) {
       auto final_signal = ntk.create_nand(ntk.create_nand(d, !c), ntk.create_nand(a, ntk.create_and(b, d)));
 
